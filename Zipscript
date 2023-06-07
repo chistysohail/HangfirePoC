@@ -1,0 +1,24 @@
+# Define the parent directory
+$ParentDir = 'C:\ParentFolder'
+
+# Load .NET Assembly System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# Get all directories within the parent directory
+$SubFolders = Get-ChildItem -Path $ParentDir -Directory | Where-Object { $_.Name -ne 'bin' -and $_.Name -ne 'obj' }
+
+# Iterate over each directory
+foreach ($Folder in $SubFolders)
+{
+    # Define the destination for the zip file
+    $Destination = Join-Path -Path $ParentDir -ChildPath ('{0}.zip' -f $Folder.Name)
+
+    # If the destination file already exists, remove it
+    if (Test-Path -Path $Destination)
+    {
+        Remove-Item -Path $Destination
+    }
+
+    # Create a new zip file with the contents of the directory
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($Folder.FullName, $Destination)
+}
