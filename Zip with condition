@@ -1,0 +1,38 @@
+# Define the parent directory
+$ParentDir = 'C:\ParentFolder'
+
+# Load .NET Assembly System.IO.Compression.FileSystem
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+# Get all directories within the parent directory
+$SubFolders = Get-ChildItem -Path $ParentDir -Directory
+
+# Iterate over each directory
+foreach ($Folder in $SubFolders)
+{
+    # Define the destination for the zip file
+    $Destination = Join-Path -Path $ParentDir -ChildPath ('{0}.zip' -f $Folder.Name)
+
+    # If the destination file already exists, remove it
+    if (Test-Path -Path $Destination)
+    {
+        Remove-Item -Path $Destination
+    }
+
+    # Define a temporary directory path
+    $TempFolder = Join-Path -Path $ParentDir -ChildPath ('{0}_temp' -f $Folder.Name)
+
+    # Create the temporary directory
+    New-Item -ItemType Directory -Force -Path $TempFolder | Out-Null
+
+    # Copy the directory to the temporary location excluding 'bin' and 'obj' directories
+    Get-ChildItem -Path $Folder.FullName -Recurse | 
+    Where-Object { $_.PSIsContainer -eq $false -and $_.FullName -notmatch '\\bin\\' -and $_.FullName -notmatch '\\obj\\' } | 
+    Copy-Item -Destination {Join-Path -Path $TempFolder -ChildPath $_.FullName.Substring($Folder.FullName.Length)} -Force
+
+    # Create a new zip file with the contents of the temporary directory
+    [System.IO.Compression.ZipFile]::CreateFromDirectory($TempFolder, $Destination)
+
+    # Delete the temporary directory
+    Remove-Item -Recurse -Force -Path $TempFolder
+}
